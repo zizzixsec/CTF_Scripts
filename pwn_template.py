@@ -2,7 +2,7 @@
 from pwn import *
 
 elf = context.binary = ELF('PATH_TO_BINARY', checksec=False)
-libc = ELF('PATH_TO_LIBC', checksec=False)
+libc = elf.libc
 
 context(terminal=['tmux', 'split-window', '-h'])
 context.log_level = 'info'
