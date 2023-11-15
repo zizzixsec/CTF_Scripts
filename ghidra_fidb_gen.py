@@ -9,38 +9,40 @@ from shutil import copyfileobj
 def die(msg):
     exit(f"[!] - {msg}")
 
-def get_batch_urls(filename):
-    path = Path(filename)
-    if not path.is_file():
+def get_srcs(filename, path):
+    if not Path(filename).is_file():
         die(f"File {filename} not found")
     with open(filename, "r") as f:
-        return [x.rstrip() for x in f.readlines()]
+        urls = [x.rstrip() for x in f.readlines()]
+    
+    path.mkdir(parents=True, exist_ok=True)
 
-def download_from_url(url, path):
-    with urlopen(url) as r, open(f"srcs/{url.split('/')[-1]}", 'wb') as out:
-        copyfileobj(r, out)
+    for url in urls:
+        with urlopen(url) as dl, open(f"{path}/{url.split('/')[-1]}", 'wb') as out:
+            copyfileobj(dl, out)
 
 
 class FIDBIMPORTER:
     def __init__(self, args):
-        self.args = args
-        self.lib_folder = Path("libs/").mkdir(parents=True, exist_ok=True)
-        self.src_folder = Path("srcs/").mkdir(parents=True, exist_ok=True)
+        self.file = args.file
+        self.lib_folder = Path("libs/")
+        self.src_folder = Path("srcs/")
     
     def importer(self):
-        if self.args.url:
-            download_from_url(self.args.url, self.src_folder)
-        elif self.args.file:
-            [download_from_url(url, self.src_folder) for url in get_batch_urls(self.args.file)]
+        self.lib_folder.mkdir(parents=True, exist_ok=True)
+        self.src_folder.mkdir(parents=True, exist_ok=True)
+
+        if self.file.endswith('.txt'):
+            _path = self.src_folder / ".".join(self.file.split(".")[:-1])
+        else:
+            _path = self.src_folder / self.file
+
+        get_srcs(self.file, _path)
 
 
 def get_args():
     parser = ArgumentParser()
-
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-u', '--url', action='store', help='library URL to load')
-    group.add_argument('-f', '--file', action='store', help='library URLs to load(Batch)')
-
+    parser.add_argument('-f', '--file', action='store', required=True, help='library URLs to load')
     return parser.parse_args()
 
 def main():
