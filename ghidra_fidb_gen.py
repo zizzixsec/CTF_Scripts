@@ -4,9 +4,11 @@ from sys import exit
 from argparse import ArgumentParser
 from pathlib import Path
 from urllib.request import urlopen
-from shutil import copyfileobj
+from shutil import copyfileobj, copy
 from re import compile
 from tempfile import TemporaryDirectory
+from subprocess import run
+
 
 def die(msg):
     exit(f"[!] - {msg}")
@@ -46,9 +48,16 @@ class FIDBIMPORTER:
             dest.mkdir(parents=True, exist_ok=True)
 
             with TemporaryDirectory() as tmpdir:
-                print(f'created tempdir: {tmpdir}')
-                print(debfile.absolute())
-            
+                tmppath = Path(tmpdir)
+                pkgpath = tmppath / pkg
+                copy(str(debfile), str(pkgpath))
+                run(["ar", "x", pkgpath, "--output", tmppath])
+                for f in tmppath.iterdir():
+                    if f.name.startswith("data.tar"):
+                        run(["tar", "-xf", f, "-C", tmppath])
+                for a in (tmppath / "usr").rglob("*"):
+                    if a.name.endswith(".a"):
+                        copy(str(a.absolute()), str(dest / a.name))
 
     def importer(self):
         self.lib_folder.mkdir(parents=True, exist_ok=True)
